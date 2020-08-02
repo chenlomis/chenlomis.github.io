@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+  <style>
+    /*.rectangle {
+      fill: lightslategray;
+    }*/
+
+    .rectangle:hover {
+      fill: lightcoral;
+    }
+
+    .axis {
+      font: 10px sans-serif;
+    }
+
+    .axis path,
+
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="drop"></div>
+
+  <div id="yeardrop"></div>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/d3-color.v1.min.js"></script>
+
+  <script>
+    var margin = { top: 30, right: 50, bottom: 80, left: 80 },
+      width = 1280 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    d3.csv("VotingInformation.csv").then(function (data) {
+
+      // filter year
+      var data_default = data.filter(function (d) { return d.Year == '2012'; });
+
+      // Get the column header except for year and state
+      var elements = Object.keys(data[0])
+        .filter(function (d) { return ((d != "Year") & (d != "State")); });
+
+      var selection = elements[0]; //default is the totalpopulation
+      //console.log(selection);
+
+      var yearChosen = d3.map(data, function (d) { return d.Year; }).keys()
+      console.log(yearChosen);
+      console.log(yearChosen[3]);
+
+
+      var y = d3.scaleLinear()
+        .domain([0, d3.max(data, function (d) { return +d[selection]; })])
+        .range([height, 0])
+        .nice();
+
+      var x = d3.scaleBand()
+        .domain(data.map(function (d) { return d.State; }))
+        .range([0, width])
+        .padding(0.1);
+
+      var z = d3.scaleOrdinal()
+        .range(["#8a89a6", "#7b6888", "#6b486b", "#4f1b4f"]);
+
+      var x0_space = d3.scaleBand()
+        .rangeRound([0, width])
+        .paddingInner(0.1);
+
+      var yAxis = svg.append('g')
+        .attr("class", "y axis") //new group that holds all the axes stuff
+        .call(d3.axisLeft(y)); //this is ONLY for y axis on the left side
+
+      //console.log(yAxis);
+
+      var xAxis = svg.append('g')
+        .attr("class", "x axis")
+        .attr('transform', `translate(0, ${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')//selecting all the text
+        .attr('x', x.bandwidth() / 2)
+        .attr('y', 0)
+        .attr('dy', '0.3em') //em is depending on the textsize
+        .attr('dx', '0.4em')
+        .attr('transform', 'rotate(90)') //rotating the axis
+        .attr('text-anchor', 'start') //defining how it rotates
+        .style("font-size", "8px");
+
+      //appending the title
+      var title = svg.append("text")
+        .attr('x', (width / 2))
+        .attr('y', 0 - (margin.top / 2))
+        .attr("class", "title")
+        .attr("text-anchor", "middle")
+        .style("font-size", 20)
+        .style("text-decoration", "underline")
+        .text("Voting Information for TotalPopulation across All American States in year 2012")
+
+
+
+      //appending y labels
+      var yLabel = svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr('y', 0 - 2 * margin.top)
+        .attr('x', 0 - height / 2)
+        .style("font-size", 12)
+        .style("font", "sans-serif")
+        .style("text-anchor", "middle")
+        .text("TotalPopulation");
+
+      var legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+        .selectAll("g")
+        .data(yearChosen)
+        .enter().append("g")
+        .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+
+      legend.append("rect")
+        .attr("x", width - 17)
+        .attr("width", 15)
+        .attr("height", 15)
+        .attr("fill", z)
+        .attr("stroke", z)
+        .attr("stroke-width", 2)
+      //.on("click", function (d) { update(d) });
+
+      legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9.5)
+        .attr("dy", "0.32em")
+        .text(function (d) { return d; });
+
+      var bar = svg.selectAll("rectangle")
+        .data(data_default)
+        .enter()
+        .append("rect")
+        .attr("class", "rectangle")
+        .attr("width", width / data_default.length)
+        .attr("height", function (d) { return height - y(+d[selection]); })
+        .attr("x", function (d, i) { return (width / data_default.length) * i; })
+        .attr("y", function (d) { return y(+d[selection]); })
+        .attr("fill", d3.rgb("#8a89a6"))
+        .append("title")
+        .text(function (d) { return d.State + " : " + d[selection]; }); //this is the hovering text
+
+      bar.append('text')
+        .text(function (d) { return +d[selection]; })
+        .attr('x', d => x(d.State) + (x.bandwidth() / 2))
+        .attr('y', d => y(+d[selection]))
+        .attr('text-anchor', 'middle')
+        .style('font-family', 'sans-sarif')
+        .style('font-size', 10)
+        .style('opacity', 1)
+        /*.transition()
+        .duration(500)
+        .style('opacity', 1)*/;
+
+      var selection = document.getElementById("dropdown");
+
+
+      var selector = d3.select("#drop")
+        .append("select")
+        .attr("id", "dropdown")
+        .on("change", function (d) {
+          selection = document.getElementById("dropdown");
+          yearselect = document.getElementById("dropdown2");
+
+          console.log(selection);
+
+          y.domain([0, d3.max(data_default, function (d) { return +d[selection.value]; })]);
+          console.log("selection = " + selection);
+          console.log("selection value = " + selection.value);
+          console.log(d3.max(data_default, function (d) { return +d[selection.value] }));
+
+          //yAxis.scaleLinear(y);
+
+          d3.selectAll(".rectangle")
+            .transition()
+            .attr("height", function (d) { return height - y(+d[selection.value]); })
+            .attr("x", function (d, i) { return (width / data_default.length) * i; })
+            .attr("y", function (d) { return y(+d[selection.value]); })
+            //.ease("linear")
+            .select("title")
+            .text(function (d) { return d.State + " : " + d[selection.value]; });
+
+          d3.selectAll(".title")
+            .transition()
+            .text("Voting Information for " + selection.value + " across All American states in year " + yearselect.value)
+
+          console.log("updated!");
+
+          yLabel.text(selection.value);
+
+
+          d3.selectAll("g.y.axis")
+            .transition()
+            .call(d3.axisLeft(y));
+
+          console.log("updated2!");
+
+        });
+
+
+      selector.selectAll("option")
+        .data(elements)
+        .enter()
+        .append("option")
+        .attr("value", function (d) { return d; })
+        .text(function (d) { return d; })
+
+      var index = 0;
+
+      //yeardrop down
+      var selector2 = d3.select("#yeardrop")
+        .append("select")
+        .attr("id", "dropdown2")
+        .on("change", function (d) {
+          selection = document.getElementById("dropdown");
+          yearselect = document.getElementById("dropdown2");
+          var barcolor = d3.rgb("#8a89a6");
+
+          console.log(selection);
+
+          console.log(yearselect); //selection2 is the year
+
+
+
+          data_update = data.filter(function (d) { return d.Year == yearselect.value; });
+          console.log(data_update);
+
+          y.domain([0, d3.max(data_update, function (d) { return +d[selection.value]; })]);
+
+          console.log("year select = " + yearselect.value);
+
+          console.log(selection.value == undefined);
+          console.log(d3.max(data_update, function (d) { return +d[selection.value] }));
+
+
+          d3.selectAll(".rectangle")
+            .data(data_update)
+            .transition()
+            .attr("height", function (d) { return height - y(+d[selection.value]); })
+            .attr("x", function (d, i) { return (width / data_update.length) * i; })
+            .attr("y", function (d) { return y(+d[selection.value]); })
+            .attr("fill", barcolor)
+            .attr('fill', function (d) {
+              if (yearselect.value == 2010) {
+                return d3.color("#7b6888");
+              }
+              else {
+
+                if (yearselect.value == 2008) {
+                  return d3.color("#6b486b");
+                }
+                else {
+
+                  if (yearselect.value == 2006) {
+                    return d3.color("#4f1b4f");
+                  }
+                  else {
+
+                    return d3.color("#8a89a6");
+                  };
+                }
+              }
+
+            })
+            .select("title")
+            .text(function (d) { return d.State + " : " + d[selection.value]; });
+
+
+          d3.selectAll(".title")
+            .transition()
+            .text("Voting Information for " + selection.value + " across All American states in year " + yearselect.value)
+
+
+          d3.selectAll("g.y.axis")
+            .transition()
+            .call(d3.axisLeft(y));
+
+          console.log("updated2!");
+
+        });
+
+      selector2.selectAll("option")
+        .data(yearChosen)
+        .enter()
+        .append("option")
+        .attr("value", function (d) { return d; })
+        .text(function (d) { return d; })
+
+
+
+      //console.log("option");
+
+
+    });
+
+  </script>
+</body>
