@@ -105,7 +105,7 @@
         .attr("text-anchor", "middle")
         .style("font-size", 20)
         .style("text-decoration", "underline")
-        .text("Voting Information for TotalPopulation across All American States in year 2012")
+        .text("TotalPopulation across All American States in year 2012")
 
 
 
@@ -198,7 +198,7 @@
 
           d3.selectAll(".title")
             .transition()
-            .text("Voting Information for " + selection.value + " across All American states in year " + yearselect.value)
+            .text(selection.value + " across All American states in year " + yearselect.value)
 
           console.log("updated!");
 
